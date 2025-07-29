@@ -46,19 +46,22 @@ def read_interests_from_file(filepath):
         print(f"Fehler beim Lesen der Datei '{filepath}': {e}")
     return interests
 
-# --- Funktionen für die App-Features (mit google_search) ---
+# --- Funktionen für die App-Features ---
 
 def get_daily_overview():
     """
     Erstellt eine kurze Tagesübersicht.
-    Nutzt Google Search, um aktuelle Top-Nachrichten zu finden und Gemini für die Zusammenfassung.
+    HINWEIS: Diese Funktion verwendet weiterhin 'google_search', was in einer lokalen IDE
+    zu einem 'name 'google_search' is not defined' Fehler führen wird.
+    Für eine vollständige lokale Ausführbarkeit müsste auch diese Funktion angepasst werden,
+    um Daten zu simulieren oder eine andere Web-Such-API zu integrieren.
     """
     model = genai.GenerativeModel(MODEL_NAME)
     today = datetime.date.today().strftime("%Y-%m-%d")
 
     try:
         print(f"Suche nach Top-Nachrichten für {today}...")
-        # Nutzt das google_search Tool
+        # Nutzt das google_search Tool (führt zu Fehler in lokaler IDE ohne Tooling-API)
         search_results = google_search.search(queries=[f"Top Nachrichten heute {today} Deutschland", f"Breaking News international {today}"])
         news_snippets = []
         
@@ -85,40 +88,29 @@ def get_daily_overview():
 
 def summarize_news_by_interests(interests):
     """
-    Fasst Nachrichten basierend auf Interessen zusammen und liefert Quellen.
+    Fasst Nachrichten basierend auf Interessen zusammen.
+    Die Informationen werden direkt von Gemini generiert, ohne externe Suche.
     """
     model = genai.GenerativeModel(MODEL_NAME)
     summaries = []
     for interest in interests:
-        print(f"Suche aktuelle Nachrichten zu '{interest}'...")
+        print(f"Generiere Zusammenfassung für '{interest}' mit Gemini...")
         try:
-            search_query = f"aktuelle Nachrichten {interest}"
-            # Nutzt das google_search Tool
-            search_results = google_search.search(queries=[search_query])
+            # Prompt, um Gemini zu bitten, Nachrichten zu einem Thema zu generieren
+            prompt = (f"Gib mir eine kurze, prägnante Zusammenfassung der wichtigsten und aktuellsten Entwicklungen "
+                      f"zum Thema '{interest}' (Max. 70 Wörter). Füge einen Hinweis hinzu, wo man mehr erfahren kann "
+                      f"(z.B. 'Mehr dazu auf [Nachrichtenseite XY]').")
+            
+            summary_response = model.generate_content(prompt)
+            summary = summary_response.text
 
-            if search_results and search_results[0] and 'results' in search_results[0] and search_results[0]['results']:
-                first_result = search_results[0]['results'][0]
-                if 'snippet' in first_result and 'url' in first_result:
-                    news_text = first_result['snippet']
-                    source_url = first_result['url']
-
-                    prompt = (f"Fasse den folgenden Text zum Thema '{interest}' kurz und prägnant zusammen (Max. 70 Wörter). "
-                              f"Gib die Essenz wieder:\n\n{news_text}")
-                    summary_response = model.generate_content(prompt)
-                    summary = summary_response.text
-
-                    summaries.append(
-                        f"### {interest}:\n"
-                        f"{summary}\n"
-                        f"Mehr dazu: {source_url}\n"
-                    )
-                else:
-                    summaries.append(f"### {interest}:\nKonnte keine detaillierten Informationen finden.\n")
-            else:
-                summaries.append(f"### {interest}:\nKonnte keine aktuellen Nachrichten finden.\n")
+            summaries.append(
+                f"### {interest}:\n"
+                f"{summary}\n"
+            )
 
         except Exception as e:
-            summaries.append(f"### {interest}:\nFehler beim Abrufen der Nachrichten: {e}\n")
+            summaries.append(f"### {interest}:\nFehler beim Generieren der Nachrichten-Zusammenfassung: {e}\n")
     return "\n".join(summaries)
 
 
@@ -134,22 +126,18 @@ def get_random_fact(interest):
 def learn_about_famous_person():
     """
     Stellt jeden Tag eine berühmte Person vor.
-    Sucht nach einer Person, die kürzlich relevant war (Geburtstag, Jubiläum etc.).
+    Die Informationen werden direkt von Gemini generiert, ohne externe Suche.
     """
     model = genai.GenerativeModel(MODEL_NAME)
-    search_query = f"berühmte person geburtstag oder jubiläum heute {datetime.date.today().strftime('%B %d')}"
     try:
-        # Nutzt das google_search Tool
-        search_results = google_search.search(queries=[search_query])
-        person_info = "Konnte heute keine passende berühmte Person finden."
-        if search_results and search_results[0] and 'results' in search_results[0] and search_results[0]['results']:
-            first_result_snippet = search_results[0]['results'][0].get('snippet', '')
-            
-            prompt = (f"Stell die Person vor, die in folgendem Text erwähnt wird, und nenne einen interessanten Fakt über sie. "
-                      f"Formatiere es als 'Name: Grund der Berühmtheit. Interessanter Fakt.'. Max. 100 Wörter. "
-                      f"Ignoriere irrelevante Informationen.\n\nText: {first_result_snippet}")
-            response = model.generate_content(prompt)
-            person_info = response.text
+        # Prompt, um Gemini zu bitten, eine berühmte Person vorzustellen
+        prompt = (f"Stell mir eine berühmte Person vor, die heute oder in der letzten Woche Geburtstag hatte, "
+                  f"oder die etwas Besonderes geleistet hat. Nenne den Namen, warum sie berühmt ist "
+                  f"und einen interessanten Fakt über sie. Max. 100 Wörter. "
+                  f"Formatiere es als 'Name: Grund der Berühmtheit. Interessanter Fakt.'.")
+        
+        response = model.generate_content(prompt)
+        person_info = response.text
         return person_info
     except Exception as e:
         return f"Fehler beim Abrufen der berühmten Person: {e}"
