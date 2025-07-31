@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AI Daily Brief</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     h1 { color: #333; }
@@ -47,8 +48,7 @@
           document.getElementById("brief").textContent = data.error_message;
         } else {
           // Rendert die Markdown-Antwort als HTML
-          // Dies ist die entscheidende Änderung, um Markdown zu unterstützen
-          document.getElementById("brief").innerHTML = data.briefing_text;
+          document.getElementById("brief").innerHTML = marked.parse(data.briefing_text);
         }
       } catch (error) {
         // Allgemeine Fehlerbehandlung
