@@ -4,6 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os, json, httpx
 from dotenv import load_dotenv
+from datetime import datetime
+
+# Importiere das neue ValueObject
+from app.value import DailyBrief
 
 # .env laden
 load_dotenv()
@@ -41,6 +45,13 @@ async def save_interests(interests: dict):
 
 @app.get("/api/daily-brief")
 async def daily_brief():
+    briefing = DailyBrief(
+        title="Tägliches KI-Briefing",
+        briefing_text="Kein Briefing geladen...",
+        timestamp=datetime.now().isoformat(),
+        status="error"
+    )
+    
     try:
         # Anfrage an OpenAI schicken
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -57,11 +68,15 @@ async def daily_brief():
             print("DEBUG API RESPONSE:", data)
 
             if "choices" in data:
-                return {"brief": data["choices"][0]["message"]["content"]}
+                briefing.briefing_text = data["choices"][0]["message"]["content"]
+                briefing.status = "success"
+                briefing.error_message = None
             else:
-                return {"brief": f"Fehler: {data.get('error', data)}"}
-
+                briefing.error_message = f"Fehler: {data.get('error', data)}"
+                
     except httpx.ReadTimeout:
-        return {"brief": "Fehler: Anfrage an OpenAI hat zu lange gedauert (Timeout)"}
+        briefing.error_message = "Fehler: Anfrage an OpenAI hat zu lange gedauert (Timeout)"
     except Exception as e:
-        return {"brief": f"Unerwarteter Fehler: {str(e)}"}
+        briefing.error_message = f"Unerwarteter Fehler: {str(e)}"
+        
+    return briefing.dict()

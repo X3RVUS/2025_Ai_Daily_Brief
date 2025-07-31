@@ -7,3 +7,4 @@ services:
       - .env
     volumes:
       - ./app/interests.json:/app/interests.json
+      - ./app/prompt.yaml:/app/prompt.yaml

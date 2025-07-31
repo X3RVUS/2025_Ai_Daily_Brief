@@ -8,21 +8,45 @@
     h1 { color: #333; }
     #brief { white-space: pre-wrap; margin-top: 20px; font-size: 1.1em; }
     button { padding: 10px 15px; margin-top: 10px; cursor: pointer; }
+    .status { font-weight: bold; margin-top: 10px; }
+    .status.success { color: green; }
+    .status.error { color: red; }
+    .timestamp { font-size: 0.9em; color: #666; }
   </style>
 </head>
 <body>
-  <h1>AI Daily Brief</h1>
+  <h1 id="brief-title">AI Daily Brief</h1>
   <button onclick="loadBrief()">Neues Briefing laden</button>
+  <div id="status" class="status"></div>
+  <div id="timestamp" class="timestamp"></div>
   <div id="brief">Noch kein Brief geladen...</div>
   <br><br>
   <a href="/interests">Interessen verwalten</a>
 
   <script>
     async function loadBrief() {
+      document.getElementById("brief").textContent = "Briefing wird geladen...";
+      document.getElementById("status").textContent = "Status: Lädt...";
+      document.getElementById("status").className = "status";
+
       const res = await fetch("/api/daily-brief");
       const data = await res.json();
-      document.getElementById("brief").textContent = data.brief || data.error;
+
+      document.getElementById("brief-title").textContent = data.title;
+      document.getElementById("brief").textContent = data.briefing_text || data.error_message;
+      document.getElementById("timestamp").textContent = `Zuletzt aktualisiert: ${new Date(data.timestamp).toLocaleString()}`;
+      
+      const statusElement = document.getElementById("status");
+      statusElement.textContent = `Status: ${data.status === 'success' ? 'Erfolgreich geladen' : 'Fehler'}`;
+      statusElement.className = `status ${data.status}`;
+
+      if (data.status === 'error') {
+        document.getElementById("brief").textContent = data.error_message;
+      }
     }
+
+    // Lade das Briefing beim ersten Seitenaufruf
+    loadBrief();
   </script>
 </body>
 </html>
