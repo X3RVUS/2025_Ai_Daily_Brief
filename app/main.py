@@ -5,14 +5,19 @@ from fastapi.templating import Jinja2Templates
 import os, json, httpx
 from dotenv import load_dotenv
 
+# .env laden
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # <-- Key aus Environment
+
+if not OPENAI_API_KEY:
+    print("❌ WARNUNG: Kein OPENAI_API_KEY in .env gefunden! Bitte eintragen und Container neu starten.")
 
 INTERESTS_FILE = "app/interests.json"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
 
-# Leeres static-Verzeichnis ist jetzt vorhanden
+# Static & Templates mounten
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
@@ -37,7 +42,8 @@ async def save_interests(interests: dict):
 @app.get("/api/daily-brief")
 async def daily_brief():
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:  # 30 Sekunden
+        # Anfrage an OpenAI schicken
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
@@ -57,3 +63,5 @@ async def daily_brief():
 
     except httpx.ReadTimeout:
         return {"brief": "Fehler: Anfrage an OpenAI hat zu lange gedauert (Timeout)"}
+    except Exception as e:
+        return {"brief": f"Unerwarteter Fehler: {str(e)}"}
