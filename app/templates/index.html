@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Daily Brief</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    #brief { white-space: pre-wrap; margin-top: 20px; font-size: 1.1em; }
+    button { padding: 10px 15px; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>AI Daily Brief</h1>
+  <button onclick="loadBrief()">Neues Briefing laden</button>
+  <div id="brief">Noch kein Brief geladen...</div>
+  <br><br>
+  <a href="/interests">Interessen verwalten</a>
+
+  <script>
+    async function loadBrief() {
+      const res = await fetch("/api/daily-brief");
+      const data = await res.json();
+      document.getElementById("brief").textContent = data.brief || data.error;
+    }
+  </script>
+</body>
+</html>

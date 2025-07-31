@@ -1,0 +1,9 @@
+services:
+  ai-daily-brief:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./app/interests.json:/app/interests.json

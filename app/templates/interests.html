@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Interessen verwalten</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    label { display: block; margin: 8px 0; }
+    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Interessen verwalten</h1>
+  <form id="form"></form>
+  <button type="button" onclick="saveInterests()">Speichern</button>
+  <br><br>
+  <a href="/">Zurück zum Daily Brief</a>
+
+  <script>
+    let interests = {};
+
+    async function loadInterests() {
+      const res = await fetch("/api/interests");
+      interests = await res.json();
+      const form = document.getElementById("form");
+      form.innerHTML = "";
+      Object.keys(interests).forEach(key => {
+        form.innerHTML += `
+          <label>
+            <input type="checkbox" name="${key}" ${interests[key] ? "checked" : ""}>
+            ${key}
+          </label>`;
+      });
+    }
+
+    async function saveInterests() {
+      const checkboxes = document.querySelectorAll("input[type=checkbox]");
+      checkboxes.forEach(cb => interests[cb.name] = cb.checked);
+      await fetch("/api/interests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(interests)
+      });
+      alert("Gespeichert!");
+    }
+
+    loadInterests();
+  </script>
+</body>
+</html>
