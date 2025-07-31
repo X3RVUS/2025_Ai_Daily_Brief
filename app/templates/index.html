@@ -25,23 +25,39 @@
 
   <script>
     async function loadBrief() {
-      document.getElementById("brief").textContent = "Briefing wird geladen...";
+      // Setzt den Ladezustand für die Benutzeroberfläche
+      document.getElementById("brief").innerHTML = "Briefing wird geladen...";
       document.getElementById("status").textContent = "Status: Lädt...";
       document.getElementById("status").className = "status";
 
-      const res = await fetch("/api/daily-brief");
-      const data = await res.json();
+      try {
+        const res = await fetch("/api/daily-brief");
+        const data = await res.json();
 
-      document.getElementById("brief-title").textContent = data.title;
-      document.getElementById("brief").textContent = data.briefing_text || data.error_message;
-      document.getElementById("timestamp").textContent = `Zuletzt aktualisiert: ${new Date(data.timestamp).toLocaleString()}`;
-      
-      const statusElement = document.getElementById("status");
-      statusElement.textContent = `Status: ${data.status === 'success' ? 'Erfolgreich geladen' : 'Fehler'}`;
-      statusElement.className = `status ${data.status}`;
+        // Aktualisiert die Benutzeroberfläche mit den Daten aus dem ValueObject
+        document.getElementById("brief-title").textContent = data.title;
+        document.getElementById("timestamp").textContent = `Zuletzt aktualisiert: ${new Date(data.timestamp).toLocaleString()}`;
+        
+        const statusElement = document.getElementById("status");
+        statusElement.textContent = `Status: ${data.status === 'success' ? 'Erfolgreich geladen' : 'Fehler'}`;
+        statusElement.className = `status ${data.status}`;
 
-      if (data.status === 'error') {
-        document.getElementById("brief").textContent = data.error_message;
+        if (data.status === 'error') {
+          // Zeigt die Fehlermeldung an, wenn ein Fehler auftritt
+          document.getElementById("brief").textContent = data.error_message;
+        } else {
+          // Rendert die Markdown-Antwort als HTML
+          // Dies ist die entscheidende Änderung, um Markdown zu unterstützen
+          document.getElementById("brief").innerHTML = data.briefing_text;
+        }
+      } catch (error) {
+        // Allgemeine Fehlerbehandlung
+        const briefElement = document.getElementById("brief");
+        briefElement.textContent = "Ein unerwarteter Fehler ist aufgetreten.";
+        
+        const statusElement = document.getElementById("status");
+        statusElement.textContent = "Status: Fehler";
+        statusElement.className = "status error";
       }
     }
 

@@ -1,1 +1,1 @@
-prompt_template: "Erstelle ein kurzes, tägliches Briefing. Der Benutzer hat folgende Interessen: {interests}. Fasse die wichtigsten Neuigkeiten und Entwicklungen aus diesen Bereichen zusammen. Sei prägnant und informativ."
+prompt_template: "Erstelle ein kurzes, tägliches Briefing im Markdown-Format. Der Benutzer hat folgende Interessen: {interests}. Fasse die wichtigsten Neuigkeiten und Entwicklungen aus diesen Bereichen zusammen. Sei prägnant und informativ."

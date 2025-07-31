@@ -1,8 +1,5 @@
 {
   "News": true,
-  "Weather": true,
-  "Business": true,
   "Technology": false,
-  "Sports": true,
   "Science": false
 }
