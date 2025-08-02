@@ -1,33 +1,41 @@
+import os
+import json
+from datetime import datetime
+
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import os, json, httpx
 from dotenv import load_dotenv
-from datetime import datetime
 
 from app.value import DailyBrief
 from app.prompt import PromptManager
+from app.src.knowledge_scraper import KnowledgeScraper
 
-# .env laden
+# -------------------------------------------------------
+# 1️⃣ ENV & CONFIG
+# -------------------------------------------------------
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 if not OPENAI_API_KEY:
-    print("❌ WARNUNG: Kein OPENAI_API_KEY in .env gefunden! Bitte eintragen und Container neu starten.")
+    print("❌ WARNUNG: Kein OPENAI_API_KEY in .env gefunden!")
 
 INTERESTS_FILE = "app/interests.json"
 PROMPT_FILE = "app/prompt.yml"
 
-# Initialisiere den PromptManager einmalig
+# PromptManager initialisieren (falls du noch interne Prompts nutzt)
 prompt_manager = PromptManager(PROMPT_FILE)
 
+# FastAPI Setup
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
-
-# Static & Templates mounten
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+
+# -------------------------------------------------------
+# 2️⃣ HTML Routen
+# -------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -36,6 +44,10 @@ async def home(request: Request):
 async def interests_page(request: Request):
     return templates.TemplateResponse("interests.html", {"request": request})
 
+
+# -------------------------------------------------------
+# 3️⃣ API: Interessen speichern/laden
+# -------------------------------------------------------
 @app.get("/api/interests")
 async def get_interests():
     with open(INTERESTS_FILE) as f:
@@ -47,10 +59,16 @@ async def save_interests(interests: dict):
         json.dump(interests, f, indent=2)
     return {"status": "saved"}
 
+
+# -------------------------------------------------------
+# 4️⃣ API: Daily Brief mit KnowledgeScraper
+# -------------------------------------------------------
 @app.get("/api/daily-brief")
 async def daily_brief():
-    """Generiert das tägliche Briefing basierend auf den Nutzerinteressen."""
-
+    """
+    Holt aktuelle Themen aus freien Quellen für jede aktive Interesse
+    und erstellt ein Markdown-Daily-Briefing per OpenAI.
+    """
     briefing = DailyBrief(
         title="Tägliches KI-Briefing",
         briefing_text="Kein Briefing geladen...",
@@ -59,37 +77,32 @@ async def daily_brief():
     )
 
     try:
+        # 1. Interessen laden
         with open(INTERESTS_FILE) as f:
             interests = json.load(f)
-        prompt = prompt_manager.create_prompt(interests)
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": "Du verfasst tägliche Briefings im Markdown-Format."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "max_tokens": 400,
-                    "response_format": {"type": "text"}
-                }
-            )
-        data = resp.json()
-        print("DEBUG API RESPONSE:", data)
+        # 2. KnowledgeScraper initialisieren
+        scraper = KnowledgeScraper(interests, OPENAI_API_KEY)
 
-        if "choices" in data:
-            briefing.briefing_text = data["choices"][0]["message"]["content"]
-            briefing.status = "success"
-            briefing.error_message = None
-        else:
-            briefing.error_message = f"Fehler: {data.get('error', data)}"
+        # 3. Nacheinander alle aktiven Interessen abarbeiten
+        all_briefs = []
+        for interest, active in interests.items():
+            if not active:
+                continue
 
-    except httpx.ReadTimeout:
-        briefing.error_message = "Fehler: Anfrage an OpenAI hat zu lange gedauert (Timeout)"
+            # Aktuelle Themen holen
+            topics = scraper.fetch_latest(interest)
+
+            # GPT Markdown-Briefing erzeugen
+            brief_md = await scraper.generate_daily_brief(interest, topics)
+            all_briefs.append(brief_md)
+
+        # 4. Gesamtbriefing zusammenführen
+        briefing.briefing_text = "\n\n---\n\n".join(all_briefs)
+        briefing.status = "success"
+        briefing.error_message = None
+
     except Exception as e:
-        briefing.error_message = f"Unerwarteter Fehler: {str(e)}"
+        briefing.error_message = f"Fehler bei Daily Brief Generierung: {str(e)}"
 
     return briefing.dict()

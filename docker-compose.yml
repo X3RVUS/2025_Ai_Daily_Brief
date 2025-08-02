@@ -1,10 +1,13 @@
 services:
-  ai-daily-brief:
-    build: .
+  ai_daily_brief:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_daily_brief
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/app
     env_file:
       - .env
-    volumes:
-      - ./app/interests.json:/app/interests.json
-      - ./app/prompt.yaml:/app/prompt.yaml
+    restart: unless-stopped
