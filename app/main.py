@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
@@ -9,9 +10,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
-from src.value import DailyBrief
-from src.prompt import PromptManager
-from src.knowledge_scraper import KnowledgeScraper
+from .src.value import DailyBrief
+from .src.prompt import PromptManager
+from .src.knowledge_scraper import KnowledgeScraper
 
 # -------------------------------------------------------
 # 1️⃣ ENV & CONFIG
@@ -21,16 +22,17 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     print("❌ WARNUNG: Kein OPENAI_API_KEY in .env gefunden!")
 
-INTERESTS_FILE = "interests.json"
-PROMPT_FILE = "prompt.yml"
+BASE_DIR = Path(__file__).parent
+INTERESTS_FILE = BASE_DIR / "interests.json"
+PROMPT_FILE = BASE_DIR / "prompt.yml"
 
 # PromptManager initialisieren (falls du noch interne Prompts nutzt)
 prompt_manager = PromptManager(PROMPT_FILE)
 
 # FastAPI Setup
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 
 # -------------------------------------------------------
