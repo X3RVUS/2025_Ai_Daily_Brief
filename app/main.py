@@ -10,9 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
-from .src.value import DailyBrief
-from .src.prompt import PromptManager
-from .src.knowledge_scraper import KnowledgeScraper
+from src.value import DailyBrief
+from src.prompt import PromptManager
+from src.knowledge_scraper import KnowledgeScraper
+
 
 # -------------------------------------------------------
 # 1️⃣ ENV & CONFIG
@@ -107,4 +108,4 @@ async def daily_brief():
     except Exception as e:
         briefing.error_message = f"Fehler bei Daily Brief Generierung: {str(e)}"
 
-    return briefing.dict()
+    return briefing.model_dump()
