@@ -7,8 +7,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Bind-Mount des Anwendungscodes. Da der Code im Container nun im
+      # Arbeitsverzeichnis liegt, reicht ein einzelnes Mapping aus.
       - ./app:/app
-      - ./app/interests.json:/app/interests.json
     env_file:
       - .env
     restart: unless-stopped
