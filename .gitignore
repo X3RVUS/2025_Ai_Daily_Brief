@@ -1,2 +1,4 @@
 api_key.enc
 .env
+# Python cache directories
+__pycache__/
