@@ -9,10 +9,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Projektdateien kopieren
-COPY app/ .
+COPY app/ ./app/
 
 # Expose für FastAPI
 EXPOSE 8000
 
 # Startbefehl für FastAPI
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
